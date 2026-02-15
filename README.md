@@ -21,15 +21,9 @@
 1.  **افتح Termux** على جهاز الأندرويد الخاص بك.
 2.  **استنسخ المستودع:**
     ```bash
-    git clone https://github.com/your_username/termux_ai_agent.git # استبدل بالرابط الصحيح إذا تم رفعه على GitHub
-    cd termux_ai_agent
-    ```
-    (ملاحظة: بما أن المشروع لم يتم رفعه على GitHub بعد، يمكنك إنشاء المجلد يدوياً ونسخ الملفات إليه.)
-    ```bash
-    mkdir -p ~/termux_ai_agent
-    cd ~/termux_ai_agent
-    # ثم انسخ الملفات agent.py, tools.py, config.py, requirements.txt, setup.sh إلى هذا المجلد
-    ```
+    git clone https://github.com/abdabdahfa2002/termux-ai-agent.git
+    cd termux-ai-agent
+    
 3.  **اجعل سكربت التثبيت قابلاً للتنفيذ وقم بتشغيله:**
     ```bash
     chmod +x setup.sh
