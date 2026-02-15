@@ -1,65 +1,61 @@
+import os
 import json
-from openai import OpenAI
+import google.generativeai as genai
 from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
 from prompt_toolkit import prompt
 from prompt_toolkit.styles import Style
-from config import API_KEY, MODEL_NAME, SYSTEM_PROMPT
-from tools import execute_shell, read_file, write_file, TOOLS_DEFINITION
+from config import GEMINI_API_KEY, DEFAULT_MODEL, ADVANCED_MODEL, SYSTEM_PROMPT
+from tools import execute_shell, read_file, write_file, search_web, get_termux_info
 
 console = Console()
-client = OpenAI(api_key=API_KEY)
+
+# إعداد Gemini
+genai.configure(api_key=GEMINI_API_KEY)
 
 class TermuxAgent:
     def __init__(self):
-        self.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-        self.style = Style.from_dict({
-            'prompt': '#00ff00 bold',
-        })
+        self.tools = {
+            "execute_shell": execute_shell,
+            "read_file": read_file,
+            "write_file": write_file,
+            "search_web": search_web,
+            "get_termux_info": get_termux_info
+        }
+        self.history = []
+        self.style = Style.from_dict({'prompt': '#00ff00 bold'})
+        
+        # إعداد النماذج
+        self.flash_model = genai.GenerativeModel(
+            model_name=DEFAULT_MODEL,
+            tools=list(self.tools.values()),
+            system_instruction=SYSTEM_PROMPT
+        )
+        self.pro_model = genai.GenerativeModel(
+            model_name=ADVANCED_MODEL,
+            tools=list(self.tools.values()),
+            system_instruction=SYSTEM_PROMPT
+        )
+        
+        self.chat = self.flash_model.start_chat(enable_automatic_function_calling=True)
 
-    def call_llm(self):
-        try:
-            response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=self.messages,
-                tools=TOOLS_DEFINITION,
-                tool_choice="auto"
-            )
-            return response.choices[0].message
-        except Exception as e:
-            console.print(f"[red]خطأ في الاتصال بالنموذج: {e}[/red]")
-            return None
-
-    def handle_tool_calls(self, tool_calls):
-        for tool_call in tool_calls:
-            function_name = tool_call.function.name
-            arguments = json.loads(tool_call.function.arguments)
-            
-            console.print(f"[yellow]جاري تنفيذ الأداة: {function_name}...[/yellow]")
-            
-            if function_name == "execute_shell":
-                result = execute_shell(arguments.get("command"))
-            elif function_name == "read_file":
-                result = read_file(arguments.get("path"))
-            elif function_name == "write_file":
-                result = write_file(arguments.get("path"), arguments.get("content"))
-            elif function_name == "search_web":
-                result = search_web(arguments.get("query"))
-            elif function_name == "get_termux_info":
-                result = get_termux_info()
-            else:
-                result = "أداة غير معروفة"
-
-            self.messages.append({
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "name": function_name,
-                "content": str(result)
-            })
+    def select_model(self, user_input):
+        """نظام ذكي لاختيار النموذج بناءً على طول وتعقيد المدخلات"""
+        complex_keywords = ["برمج", "كود", "حلل", "مشروع", "تطبيق", "بناء", "صمم"]
+        is_complex = len(user_input.split()) > 20 or any(kw in user_input for kw in complex_keywords)
+        
+        if is_complex:
+            console.print("[blue]ℹ️ تم تفعيل وضع الأداء العالي للمهمة المعقدة...[/blue]")
+            return self.pro_model
+        return self.flash_model
 
     def run(self):
-        console.print(Panel.fit("[bold green]Termux AI Agent[/bold green]\n[cyan]مرحباً بك! أنا مساعدك الذكي في تيرمكس.[/cyan]", border_style="green"))
+        console.print(Panel.fit(
+            "[bold green]Termux AI Agent (Gemini Edition)[/bold green]\n"
+            "[cyan]تم التحديث لدعم Gemini مع إدارة ذكية للموارد.[/cyan]", 
+            border_style="green"
+        ))
         
         while True:
             try:
@@ -70,26 +66,26 @@ class TermuxAgent:
                 if not user_input.strip():
                     continue
 
-                self.messages.append({"role": "user", "content": user_input})
+                # اختيار النموذج المناسب للمهمة
+                current_model = self.select_model(user_input)
                 
-                while True:
-                    response_message = self.call_llm()
-                    if not response_message:
-                        break
-
-                    self.messages.append(response_message)
-
-                    if response_message.tool_calls:
-                        self.handle_tool_calls(response_message.tool_calls)
-                    else:
-                        console.print(Markdown(response_message.content or ""))
-                        break
+                # إرسال الرسالة ومعالجة الرد تلقائياً (بفضل enable_automatic_function_calling)
+                response = self.chat.send_message(user_input)
+                
+                # عرض الرد
+                console.print(Markdown(response.text))
 
             except KeyboardInterrupt:
                 break
             except Exception as e:
-                console.print(f"[red]حدث خطأ غير متوقع: {e}[/red]")
+                if "429" in str(e):
+                    console.print("[red]⚠️ تم تجاوز حد الاستهلاك المجاني. يرجى الانتظار قليلاً.[/red]")
+                else:
+                    console.print(f"[red]حدث خطأ: {e}[/red]")
 
 if __name__ == "__main__":
-    agent = TermuxAgent()
-    agent.run()
+    if not GEMINI_API_KEY:
+        console.print("[red]❌ خطأ: لم يتم العثور على GEMINI_API_KEY في ملف .env[/red]")
+    else:
+        agent = TermuxAgent()
+        agent.run()

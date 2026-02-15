@@ -1,4 +1,4 @@
-openai
+google-generativeai
 rich
 prompt_toolkit
 requests

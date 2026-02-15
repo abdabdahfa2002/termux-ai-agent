@@ -23,8 +23,9 @@ pip install -r requirements.txt
 # إنشاء ملف .env إذا لم يكن موجوداً
 if [ ! -f .env ]; then
     echo "[!] .env file not found. Creating one..."
-    echo "OPENAI_API_KEY=your_api_key_here" > .env
-    echo "MODEL_NAME=gpt-4o" >> .env
+    echo "GEMINI_API_KEY=your_gemini_api_key_here" > .env
+    echo "DEFAULT_MODEL=gemini-1.5-flash" >> .env
+    echo "ADVANCED_MODEL=gemini-1.5-pro" >> .env
     echo "[+] Created .env. Please edit it and add your API Key."
 fi
 

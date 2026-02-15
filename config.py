@@ -3,9 +3,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# إعدادات النموذج
-API_KEY = os.getenv("OPENAI_API_KEY", "")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
+# إعدادات Gemini API
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# استخدام gemini-1.5-flash للمهام السريعة و gemini-1.5-pro للمهام المعقدة
+DEFAULT_MODEL = "gemini-1.5-flash" 
+ADVANCED_MODEL = "gemini-1.5-pro"
 
 # إعدادات النظام
 SYSTEM_PROMPT = """
@@ -15,4 +17,8 @@ SYSTEM_PROMPT = """
 يجب أن تكون ردودك احترافية، دقيقة، وباللغة العربية.
 عند تنفيذ أوامر خطيرة، اطلب تأكيداً من المستخدم.
 استخدم الأدوات المتاحة لك لإنجاز المهام بفعالية.
+
+إدارة الموارد:
+- للمهام البسيطة (مثل الاستفسارات العامة أو الأوامر القصيرة)، استخدم قدراتك الأساسية.
+- للمهام المعقدة (مثل كتابة أكواد طويلة أو تحليل ملفات ضخمة)، استخدم أقصى قدراتك التحليلية.
 """
