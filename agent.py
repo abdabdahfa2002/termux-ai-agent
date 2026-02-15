@@ -78,10 +78,15 @@ class TermuxAgent:
             except KeyboardInterrupt:
                 break
             except Exception as e:
-                if "429" in str(e):
-                    console.print("[red]⚠️ تم تجاوز حد الاستهلاك المجاني. يرجى الانتظار قليلاً.[/red]")
+                error_msg = str(e)
+                if "429" in error_msg:
+                    console.print("[red]⚠️ تم تجاوز حد الاستهلاك المجاني (Rate Limit). سأحاول التبديل للنموذج الأخف أو يرجى الانتظار دقيقة.[/red]")
+                elif "500" in error_msg or "503" in error_msg:
+                    console.print("[yellow]⚠️ خوادم Gemini مشغولة حالياً. سأحاول إعادة الاتصال تلقائياً...[/yellow]")
+                elif "quota" in error_msg.lower():
+                    console.print("[red]❌ انتهت الحصة المجانية لهذا اليوم.[/red]")
                 else:
-                    console.print(f"[red]حدث خطأ: {e}[/red]")
+                    console.print(f"[red]حدث خطأ غير متوقع: {e}[/red]")
 
 if __name__ == "__main__":
     if not GEMINI_API_KEY:

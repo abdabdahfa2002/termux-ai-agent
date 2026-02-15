@@ -1,23 +1,34 @@
 #!/bin/bash
 
 echo "------------------------------------------"
-echo "   Termux AI Agent - Installation Script   "
+echo "   Termux AI Agent - Smart Installation   "
 echo "------------------------------------------"
 
-# تحديث الحزم
-echo "[*] Updating packages..."
-pkg update -y && pkg upgrade -y
+# وظيفة للتعامل مع قفل الحزم
+fix_lock() {
+    echo "[!] Checking for package manager locks..."
+    if [ -f /data/data/com.termux/files/usr/var/lib/dpkg/lock-frontend ]; then
+        echo "[!] Found lock. Attempting to clear safely..."
+        # محاولة قتل العمليات العالقة التي تستخدم apt أو dpkg
+        fuser -k /data/data/com.termux/files/usr/var/lib/dpkg/lock-frontend > /dev/null 2>&1
+        rm -f /data/data/com.termux/files/usr/var/lib/dpkg/lock-frontend
+    fi
+}
+
+# تنفيذ الإصلاح قبل البدء
+fix_lock
+
+# تحديث الحزم مع تخطي التحديثات الكبيرة إذا كانت تسبب قفلاً
+echo "[*] Updating package lists..."
+pkg update -y || { echo "[!] Update failed, trying to fix lock and retry..."; fix_lock; pkg update -y; }
 
 # تثبيت المتطلبات الأساسية
 echo "[*] Installing dependencies (Python, Termux-API)..."
 pkg install python ncurses-utils termux-api -y
 
-# إنشاء بيئة افتراضية (اختياري ولكن مفضل)
-# python -m venv venv
-# source venv/bin/activate
-
 # تثبيت مكتبات بايثون
 echo "[*] Installing Python libraries..."
+pip install --upgrade pip
 pip install -r requirements.txt
 
 # إنشاء ملف .env إذا لم يكن موجوداً
@@ -31,8 +42,9 @@ fi
 
 # جعل الوكيل قابلاً للتشغيل كأمر
 echo "[*] Setting up shortcut..."
-echo "alias termux-ai='python $(pwd)/agent.py'" >> ~/.bashrc
-source ~/.bashrc
+if ! grep -q "alias termux-ai" ~/.bashrc; then
+    echo "alias termux-ai='python $(pwd)/agent.py'" >> ~/.bashrc
+fi
 
 echo "------------------------------------------"
 echo "   Installation Complete!                 "
